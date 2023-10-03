@@ -3,7 +3,7 @@
 </div>
 
 <h1 align="center">
- Search Blog
+ RSS Search Blog
 </h1>
 
 <p align="center">

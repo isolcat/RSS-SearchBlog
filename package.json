@@ -1,9 +1,9 @@
 {
-  "name": "searchBlog",
+  "name": "isolcat",
   "displayName": "searchBlog",
   "publisher": "isolcat",
   "description": "",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.82.0"
   },

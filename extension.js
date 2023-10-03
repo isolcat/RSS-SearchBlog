@@ -6,11 +6,11 @@ const RSS_LINKS_CONFIG_KEY = 'allblog.rssLinks';
 const RSS_LINK_REGEX = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/;
 
 async function activate(context) {
-	let rssLinks = vscode.workspace.getConfiguration().get(RSS_LINKS_CONFIG_KEY, {});
+	// 获取保存的RSS链接列表，如果为空则初始化为空对象
+	let rssLinks = context.globalState.get(RSS_LINKS_CONFIG_KEY, {});
 
 	async function parseArticles(link) {
 		const response = await axios.get(link);
-		//解析RSS链接中的文章
 		const articles = xmlParser.parse(response.data).rss.channel.item;
 		return articles;
 	}
@@ -18,7 +18,6 @@ async function activate(context) {
 	async function getArticleContent(link, customName) {
 		const articles = await parseArticles(link);
 
-		// 创建文章列表以供用户选择
 		const articleList = articles.map((article, index) => ({
 			label: article.title,
 			description: article.description,
@@ -33,7 +32,6 @@ async function activate(context) {
 		if (selectedArticle) {
 			const { link } = selectedArticle;
 
-			//自定义高度
 			const heightInput = await vscode.window.showInputBox({
 				prompt: 'Enter the height of the window (in px)',
 				placeHolder: '500'
@@ -105,8 +103,8 @@ async function activate(context) {
 
 						// 添加新的RSS链接和对应的自定义名字
 						rssLinks[newLink] = customName;
-						// 订阅信息会保存在用户的本地配置中
-						vscode.workspace.getConfiguration().update(RSS_LINKS_CONFIG_KEY, rssLinks, vscode.ConfigurationTarget.Global);
+						// 保存订阅信息到用户的本地
+						context.globalState.update(RSS_LINKS_CONFIG_KEY, rssLinks);
 						await getArticleContent(newLink, customName);
 					}
 				}

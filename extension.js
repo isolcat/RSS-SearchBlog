@@ -5,20 +5,17 @@ const xmlParser = require("fast-xml-parser");
 const RSS_LINKS_CONFIG_KEY = 'allblog.rssLinks';
 
 async function activate(context) {
-	// 获取保存的RSS链接列表
-	let rssLinks = vscode.workspace.getConfiguration().get(RSS_LINKS_CONFIG_KEY, []);
+	let rssLinks = vscode.workspace.getConfiguration().get(RSS_LINKS_CONFIG_KEY, {});
 
-	// 解析RSS文章
 	async function parseArticles(link) {
 		const response = await axios.get(link);
 		const articles = xmlParser.parse(response.data).rss.channel.item;
 		return articles;
 	}
 
-	async function getArticleContent(link) {
+	async function getArticleContent(link, customName) {
 		const articles = await parseArticles(link);
 
-		// 生成文章列表
 		const articleList = articles.map((article, index) => ({
 			label: article.title,
 			description: article.description,
@@ -33,15 +30,14 @@ async function activate(context) {
 		if (selectedArticle) {
 			const { link } = selectedArticle;
 
-			// 显示滑块，让用户可以自定义窗口高度
 			const heightInput = await vscode.window.showInputBox({
 				prompt: 'Enter the height of the window (in pixels)',
-				placeHolder: '500' // Default height
+				placeHolder: '500'
 			});
 
 			const webViewPanel = vscode.window.createWebviewPanel(
 				'blogWebView',
-				selectedArticle.label, // Use the selected article title as the panel title
+				customName, // Use the custom name as the title
 				vscode.ViewColumn.One,
 				{
 					enableScripts: true,
@@ -71,7 +67,7 @@ async function activate(context) {
 	let disposable = vscode.commands.registerCommand('allblog.searchBlog', async () => {
 		const choiceItems = [
 			{ label: 'Add new RSS link', isNew: true },
-			...rssLinks.map(link => ({ label: link.name, isNew: false }))
+			...Object.keys(rssLinks).map(link => ({ label: rssLinks[link], link: link, isNew: false }))
 		];
 
 		const selectedChoice = await vscode.window.showQuickPick(choiceItems, {
@@ -89,19 +85,22 @@ async function activate(context) {
 						prompt: 'Enter a custom name for this RSS link'
 					});
 
-					const newRssLink = {
-						name: customName || newLink, // Use custom name if provided, otherwise use the link itself
-						url: newLink
-					};
+					if (customName) {
+						// Check for duplicate custom names
+						const duplicateCustomName = Object.values(rssLinks).includes(customName);
+						if (duplicateCustomName) {
+							vscode.window.showErrorMessage('This custom name is already in use. Please choose a different name.');
+							return;
+						}
 
-					// 统一数据结构为对象数组
-					rssLinks.push(newRssLink);
-					vscode.workspace.getConfiguration().update(RSS_LINKS_CONFIG_KEY, rssLinks, vscode.ConfigurationTarget.Global);
-					await getArticleContent(newLink);
+						// 添加新的RSS链接和对应的自定义名字
+						rssLinks[newLink] = customName;
+						vscode.workspace.getConfiguration().update(RSS_LINKS_CONFIG_KEY, rssLinks, vscode.ConfigurationTarget.Global);
+						await getArticleContent(newLink, customName);
+					}
 				}
 			} else {
-				// 用户选择了已有的RSS链接
-				await getArticleContent(selectedChoice.label);
+				await getArticleContent(selectedChoice.link, selectedChoice.label);
 			}
 		}
 	});

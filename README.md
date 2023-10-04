@@ -24,4 +24,5 @@
 **Mac** `Control + Shift + P`
 
 **Win** `Shift + Alt + P`
+
 **输入searchBlog来添加需要订阅的RSS**

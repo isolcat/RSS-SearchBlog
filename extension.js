@@ -95,10 +95,13 @@ async function activate(context) {
 	}, RSS_CHECK_INTERVAL);
 
 	let disposable = vscode.commands.registerCommand('allblog.searchBlog', async () => {
+		// 选项
 		const choiceItems = [
 			{ label: 'Add new RSS link', isNew: true },
-			...Object.keys(rssLinks).map(link => ({ label: rssLinks[link], link, isNew: false }))
+			...Object.keys(rssLinks).map(link => ({ label: rssLinks[link], link, isNew: false })),
+			{ label: 'Delete RSS link', isDelete: true }
 		];
+
 
 		const selectedChoice = await vscode.window.showQuickPick(choiceItems, {
 			placeHolder: 'Select an RSS link or add a new one'
@@ -135,6 +138,15 @@ async function activate(context) {
 						context.globalState.update(RSS_LINKS_CONFIG_KEY, rssLinks);
 						await getArticleContent(newLink, customName);
 					}
+				}
+			}else if (selectedChoice.isDelete) {
+				const linkToDelete = await vscode.window.showQuickPick(Object.keys(rssLinks).map(link => ({ label: rssLinks[link], link })), {
+					placeHolder: '选择要删除的RSS链接'
+				});
+	
+				if (linkToDelete) {
+					delete rssLinks[linkToDelete.link];
+					context.globalState.update(RSS_LINKS_CONFIG_KEY, rssLinks);
 				}
 			} else {
 				await getArticleContent(selectedChoice.link, selectedChoice.label);

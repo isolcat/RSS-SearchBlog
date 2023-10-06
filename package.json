@@ -16,6 +16,17 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "configuration": [
+      {
+        "title": "RSS Links for RSS-searchBlog",
+        "properties": {
+          "allblog.rssLinks": {
+            "type": "object",
+            "description": "RSS links for the RSS-searchBlog extension"
+          }
+        }
+      }
+    ],
     "commands": [
       {
         "command": "allblog.searchBlog",

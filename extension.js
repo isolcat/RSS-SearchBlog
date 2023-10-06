@@ -5,8 +5,13 @@ const xmlParser = require("fast-xml-parser");
 const RSS_LINKS_CONFIG_KEY = 'allblog.rssLinks';
 const RSS_LINK_REGEX = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/;
 
+// 记录每个 RSS 的最新文章链接
+const latestArticleLinks = {};
+
+// 定时检查 RSS 更新的时间间隔（毫秒）
+const RSS_CHECK_INTERVAL = 3600000; // 1小时
+
 async function activate(context) {
-	// 获取保存的RSS链接列表，如果为空则初始化为空对象
 	let rssLinks = context.globalState.get(RSS_LINKS_CONFIG_KEY, {});
 
 	async function parseArticles(link) {
@@ -49,22 +54,45 @@ async function activate(context) {
 
 			let height = parseInt(heightInput) || 500;
 			webViewPanel.webview.html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-              }
-            </style>
-          </head>
-          <body>
-            <iframe src="${link}" width="100%" height="${height}px"></iframe>
-          </body>
-        </html>
-      `;
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                    }
+                    </style>
+                </head>
+                <body>
+                    <iframe src="${link}" width="100%" height="${height}px"></iframe>
+                </body>
+                </html>
+            `;
 		}
 	}
+
+	// 定时检查 RSS 更新
+	setInterval(async () => {
+		for (const rssLink in rssLinks) {
+			const response = await axios.get(rssLink);
+			const articles = xmlParser.parse(response.data).rss.channel.item;
+
+			// 获取当前 RSS 的最新文章链接
+			let latestArticleLink = latestArticleLinks[rssLink];
+			if (!latestArticleLink) {
+				latestArticleLink = articles[0].link; // 默认取第一篇文章
+			}
+
+			// 检查是否有新文章
+			const newArticles = articles.filter(article => article.link !== latestArticleLink);
+			if (newArticles.length > 0) {
+				latestArticleLinks[rssLink] = newArticles[0].link; // 更新最新文章链接
+
+				// 提示用户有新文章
+				vscode.window.showInformationMessage(`${rssLinks[rssLink]} 更新了文章`);
+			}
+		}
+	}, RSS_CHECK_INTERVAL);
 
 	let disposable = vscode.commands.registerCommand('allblog.searchBlog', async () => {
 		const choiceItems = [

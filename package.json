@@ -4,7 +4,7 @@
   "publisher": "isolcat",
   "description": "Turn VScode into your personal RSS reader!",
   "icon": "docs/Logo.png",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "engines": {
     "vscode": "^1.82.0"
   },
